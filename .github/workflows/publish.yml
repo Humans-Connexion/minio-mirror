@@ -1,0 +1,51 @@
+name: Publier les miroirs MinIO
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: minio-mirror-publication
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Télécharger les archives vérifiées
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release download upstream-2026-09-24 --pattern minio.tar --pattern minio-client.tar --pattern SHA256SUMS
+          echo "618b2e2f37a5ea92098e92e829a539238ebe695e2ad73ffa0390543b000708e1  minio.tar" > expected-checksums
+          echo "5ef2f21437eb7c1f8cd49df3bfc3a6cb221ff1db780528658f7c787259ba9d2d  minio-client.tar" >> expected-checksums
+          sha256sum --check expected-checksums
+
+      - name: Charger les images officielles
+        run: |
+          docker load --input minio.tar
+          docker load --input minio-client.tar
+          docker run --rm --pull never --entrypoint minio minio/minio:latest --version
+          docker run --rm --pull never --entrypoint mc minio/mc:latest --version
+          test "$(docker image inspect minio/minio:latest --format '{{.Architecture}}')" = amd64
+          test "$(docker image inspect minio/mc:latest --format '{{.Architecture}}')" = amd64
+          docker tag minio/minio:latest ghcr.io/humans-connexion/minio:RELEASE.2025-09-07T16-13-09Z
+          docker tag minio/mc:latest ghcr.io/humans-connexion/minio-client:RELEASE.2025-08-13T08-35-41Z
+
+      - name: Publier sans reconstruire
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_ACTOR: ${{ github.actor }}
+        run: |
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GH_ACTOR" --password-stdin
+          docker push ghcr.io/humans-connexion/minio:RELEASE.2025-09-07T16-13-09Z
+          docker push ghcr.io/humans-connexion/minio-client:RELEASE.2025-08-13T08-35-41Z
+          docker image inspect ghcr.io/humans-connexion/minio:RELEASE.2025-09-07T16-13-09Z ghcr.io/humans-connexion/minio-client:RELEASE.2025-08-13T08-35-41Z --format '{{json .RepoDigests}}' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fermer la session du registre
+        if: always()
+        run: docker logout ghcr.io
