@@ -20,6 +20,16 @@ dépôt. Aucun secret personnel n'est nécessaire au workflow. Les packages doiv
 être publics pour permettre les téléchargements anonymes.
 
 Les consommateurs doivent épingler les digests publiés, en complément des tags
-de version. Le miroir ne fournit aucune mise à jour de sécurité automatique.
+de version :
+
+```text
+ghcr.io/humans-connexion/minio:RELEASE.2025-09-07T16-13-09Z@sha256:52dfd5c0bbd38d3219f2058c7af216d9f9a27a994b7b5baad09bbd38866015ff
+ghcr.io/humans-connexion/minio-client:RELEASE.2025-08-13T08-35-41Z@sha256:bdfae21c72b19fae5a005c56dddba25a873d75fac3dda60f55aea7e417382cbe
+```
+
+La configuration et les couches de ces images ont été comparées aux archives
+sources après téléchargement depuis GHCR : elles sont identiques.
+
+Le miroir ne fournit aucune mise à jour de sécurité automatique.
 La décision de remplacement de MinIO est à réexaminer au plus tard le
 **24 octobre 2026**.
